@@ -49,10 +49,16 @@ func (s *mockStmt) Close() error {
 }
 
 func (s *mockStmt) QueryRowContext(ctx context.Context, args ...any) *sql.Row {
+	if rand.Intn(1000) == 1 {
+		fmt.Println("mockStmt.QueryRowContext", s.query, args)
+	}
 	return s.conn.QueryRowContext(ctx, s.query, args...)
 }
 
 func (s *mockStmt) QueryContext(ctx context.Context, args ...any) (*sql.Rows, error) {
+	if rand.Intn(1000) == 1 {
+		fmt.Println("mockStmt.QueryContext", s.query, args)
+	}
 	return s.conn.QueryContext(ctx, s.query, args...)
 }
 
