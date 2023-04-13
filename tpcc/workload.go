@@ -53,8 +53,13 @@ func (s *mockStmt) genQuery(args ...any) string {
 	argIdx := 0
 	for i := 0; i < len(s.query); i++ {
 		if s.query[i] == '?' {
-			buf = append(buf, fmt.Sprintf("%v", args[argIdx])...)
+			x := args[argIdx]
 			argIdx++
+			if str, isStr := x.(string); isStr {
+				buf = append(buf, fmt.Sprintf("'%v'", str)...)
+			} else {
+				buf = append(buf, fmt.Sprintf("%v", x)...)
+			}
 		} else {
 			buf = append(buf, s.query[i])
 		}
