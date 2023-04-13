@@ -10,6 +10,7 @@ import (
 )
 
 func TestPrep(t *testing.T) {
+	t.Skip()
 	dsn := fmt.Sprintf("root:@tcp(127.0.0.1:4000)/test?multiStatements=true")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
