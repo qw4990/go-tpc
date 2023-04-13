@@ -32,17 +32,23 @@ type txn struct {
 	thinkingTime float64
 }
 
+type Stmt interface {
+	Close() error
+	QueryContext(ctx context.Context, args ...any) (*sql.Rows, error)
+	ExecContext(ctx context.Context, args ...any) (sql.Result, error)
+}
+
 type tpccState struct {
 	*workload.TpcState
 	index   int
 	decks   []int
 	loaders map[string]*sink.CSVSink
 
-	newOrderStmts    map[string]*sql.Stmt
-	orderStatusStmts map[string]*sql.Stmt
-	deliveryStmts    map[string]*sql.Stmt
-	stockLevelStmt   map[string]*sql.Stmt
-	paymentStmts     map[string]*sql.Stmt
+	newOrderStmts    map[string]Stmt
+	orderStatusStmts map[string]Stmt
+	deliveryStmts    map[string]Stmt
+	stockLevelStmt   map[string]Stmt
+	paymentStmts     map[string]Stmt
 }
 
 const (
@@ -234,7 +240,7 @@ func (w *Workloader) Run(ctx context.Context, threadID int) error {
 		refreshConn = true
 	}
 	if s.newOrderStmts == nil || refreshConn {
-		s.newOrderStmts = map[string]*sql.Stmt{
+		s.newOrderStmts = map[string]Stmt{
 			newOrderSelectCustomer: prepareStmt(w.cfg.Driver, ctx, s.Conn, newOrderSelectCustomer),
 			newOrderSelectDistrict: prepareStmt(w.cfg.Driver, ctx, s.Conn, newOrderSelectDistrict),
 			newOrderUpdateDistrict: prepareStmt(w.cfg.Driver, ctx, s.Conn, newOrderUpdateDistrict),
@@ -251,7 +257,7 @@ func (w *Workloader) Run(ctx context.Context, threadID int) error {
 			s.newOrderStmts[newOrderInsertOrderLineSQLs[i]] = prepareStmt(w.cfg.Driver, ctx, s.Conn, newOrderInsertOrderLineSQLs[i])
 		}
 
-		s.paymentStmts = map[string]*sql.Stmt{
+		s.paymentStmts = map[string]Stmt{
 			paymentUpdateWarehouse:          prepareStmt(w.cfg.Driver, ctx, s.Conn, paymentUpdateWarehouse),
 			paymentSelectWarehouse:          prepareStmt(w.cfg.Driver, ctx, s.Conn, paymentSelectWarehouse),
 			paymentUpdateDistrict:           prepareStmt(w.cfg.Driver, ctx, s.Conn, paymentUpdateDistrict),
@@ -264,14 +270,14 @@ func (w *Workloader) Run(ctx context.Context, threadID int) error {
 			paymentInsertHistory:            prepareStmt(w.cfg.Driver, ctx, s.Conn, paymentInsertHistory),
 		}
 
-		s.orderStatusStmts = map[string]*sql.Stmt{
+		s.orderStatusStmts = map[string]Stmt{
 			orderStatusSelectCustomerCntByLast: prepareStmt(w.cfg.Driver, ctx, s.Conn, orderStatusSelectCustomerCntByLast),
 			orderStatusSelectCustomerByLast:    prepareStmt(w.cfg.Driver, ctx, s.Conn, orderStatusSelectCustomerByLast),
 			orderStatusSelectCustomerByID:      prepareStmt(w.cfg.Driver, ctx, s.Conn, orderStatusSelectCustomerByID),
 			orderStatusSelectLatestOrder:       prepareStmt(w.cfg.Driver, ctx, s.Conn, orderStatusSelectLatestOrder),
 			orderStatusSelectOrderLine:         prepareStmt(w.cfg.Driver, ctx, s.Conn, orderStatusSelectOrderLine),
 		}
-		s.deliveryStmts = map[string]*sql.Stmt{
+		s.deliveryStmts = map[string]Stmt{
 			deliverySelectNewOrder:  prepareStmt(w.cfg.Driver, ctx, s.Conn, deliverySelectNewOrder),
 			deliveryDeleteNewOrder:  prepareStmt(w.cfg.Driver, ctx, s.Conn, deliveryDeleteNewOrder),
 			deliveryUpdateOrder:     prepareStmt(w.cfg.Driver, ctx, s.Conn, deliveryUpdateOrder),
@@ -280,7 +286,7 @@ func (w *Workloader) Run(ctx context.Context, threadID int) error {
 			deliverySelectSumAmount: prepareStmt(w.cfg.Driver, ctx, s.Conn, deliverySelectSumAmount),
 			deliveryUpdateCustomer:  prepareStmt(w.cfg.Driver, ctx, s.Conn, deliveryUpdateCustomer),
 		}
-		s.stockLevelStmt = map[string]*sql.Stmt{
+		s.stockLevelStmt = map[string]Stmt{
 			stockLevelSelectDistrict: prepareStmt(w.cfg.Driver, ctx, s.Conn, stockLevelSelectDistrict),
 			stockLevelCount:          prepareStmt(w.cfg.Driver, ctx, s.Conn, stockLevelCount),
 		}
@@ -458,8 +464,8 @@ func (w *Workloader) beginTx(ctx context.Context) (*sql.Tx, error) {
 	return tx, err
 }
 
-func prepareStmts(driver string, ctx context.Context, conn *sql.Conn, queries []string) []*sql.Stmt {
-	stmts := make([]*sql.Stmt, len(queries))
+func prepareStmts(driver string, ctx context.Context, conn *sql.Conn, queries []string) []Stmt {
+	stmts := make([]Stmt, len(queries))
 	for i, query := range queries {
 		if len(query) == 0 {
 			continue
@@ -470,7 +476,7 @@ func prepareStmts(driver string, ctx context.Context, conn *sql.Conn, queries []
 	return stmts
 }
 
-func prepareStmt(driver string, ctx context.Context, conn *sql.Conn, query string) *sql.Stmt {
+func prepareStmt(driver string, ctx context.Context, conn *sql.Conn, query string) Stmt {
 	stmt, err := conn.PrepareContext(ctx, convertToPQ(query, driver))
 	if err != nil {
 		fmt.Println(fmt.Sprintf("prepare statement error: %s", query))
@@ -479,7 +485,7 @@ func prepareStmt(driver string, ctx context.Context, conn *sql.Conn, query strin
 	return stmt
 }
 
-func closeStmts(stmts map[string]*sql.Stmt) {
+func closeStmts(stmts map[string]Stmt) {
 	for _, stmt := range stmts {
 		if stmt == nil {
 			continue
