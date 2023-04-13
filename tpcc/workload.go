@@ -48,22 +48,30 @@ func (s *mockStmt) Close() error {
 	return nil
 }
 
-func (s *mockStmt) QueryRowContext(ctx context.Context, args ...any) *sql.Row {
-	if rand.Intn(1000) == 1 {
-		fmt.Println("mockStmt.QueryRowContext", s.query, args)
+func (s *mockStmt) genQuery(args ...any) string {
+	buf := make([]byte, 0, len(s.query))
+	argIdx := 0
+	for i := 0; i < len(s.query); i++ {
+		if s.query[i] == '?' {
+			buf = append(buf, fmt.Sprintf("%v", args[argIdx])...)
+			argIdx++
+		} else {
+			buf = append(buf, s.query[i])
+		}
 	}
-	return s.conn.QueryRowContext(ctx, s.query, args...)
+	return string(buf)
+}
+
+func (s *mockStmt) QueryRowContext(ctx context.Context, args ...any) *sql.Row {
+	return s.conn.QueryRowContext(ctx, s.genQuery(args...))
 }
 
 func (s *mockStmt) QueryContext(ctx context.Context, args ...any) (*sql.Rows, error) {
-	if rand.Intn(1000) == 1 {
-		fmt.Println("mockStmt.QueryContext", s.query, args)
-	}
-	return s.conn.QueryContext(ctx, s.query, args...)
+	return s.conn.QueryContext(ctx, s.genQuery(args...))
 }
 
 func (s *mockStmt) ExecContext(ctx context.Context, args ...any) (sql.Result, error) {
-	return s.conn.ExecContext(ctx, s.query, args...)
+	return s.conn.ExecContext(ctx, s.genQuery(args...))
 }
 
 type tpccState struct {
