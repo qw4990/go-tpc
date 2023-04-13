@@ -39,6 +39,27 @@ type Stmt interface {
 	ExecContext(ctx context.Context, args ...any) (sql.Result, error)
 }
 
+type mockStmt struct {
+	conn  *sql.Conn
+	query string
+}
+
+func (s *mockStmt) Close() error {
+	return nil
+}
+
+func (s *mockStmt) QueryRowContext(ctx context.Context, args ...any) *sql.Row {
+	return s.conn.QueryRowContext(ctx, s.query, args...)
+}
+
+func (s *mockStmt) QueryContext(ctx context.Context, args ...any) (*sql.Rows, error) {
+	return s.conn.QueryContext(ctx, s.query, args...)
+}
+
+func (s *mockStmt) ExecContext(ctx context.Context, args ...any) (sql.Result, error) {
+	return s.conn.ExecContext(ctx, s.query, args...)
+}
+
 type tpccState struct {
 	*workload.TpcState
 	index   int
@@ -478,12 +499,16 @@ func prepareStmts(driver string, ctx context.Context, conn *sql.Conn, queries []
 }
 
 func prepareStmt(driver string, ctx context.Context, conn *sql.Conn, query string) Stmt {
-	stmt, err := conn.PrepareContext(ctx, convertToPQ(query, driver))
-	if err != nil {
-		fmt.Println(fmt.Sprintf("prepare statement error: %s", query))
-		panic(err)
+	return &mockStmt{
+		conn:  conn,
+		query: query,
 	}
-	return stmt
+	//stmt, err := conn.PrepareContext(ctx, convertToPQ(query, driver))
+	//if err != nil {
+	//	fmt.Println(fmt.Sprintf("prepare statement error: %s", query))
+	//	panic(err)
+	//}
+	//return stmt
 }
 
 func closeStmts(stmts map[string]Stmt) {
