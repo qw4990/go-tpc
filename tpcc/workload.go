@@ -34,6 +34,7 @@ type txn struct {
 
 type Stmt interface {
 	Close() error
+	QueryRowContext(ctx context.Context, args ...any) *sql.Row
 	QueryContext(ctx context.Context, args ...any) (*sql.Rows, error)
 	ExecContext(ctx context.Context, args ...any) (sql.Result, error)
 }
