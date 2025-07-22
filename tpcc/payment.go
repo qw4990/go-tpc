@@ -88,6 +88,8 @@ func (w *Workloader) runPayment(ctx context.Context, thread int) error {
 		d.cDID = randInt(s.R, 1, districtPerWarehouse)
 	}
 
+	begin := time.Now()
+
 	tx, err := w.beginTx(ctx)
 	if err != nil {
 		return err
@@ -174,5 +176,19 @@ func (w *Workloader) runPayment(ctx context.Context, thread int) error {
 		return fmt.Errorf("exec %s failed %v", paymentInsertHistory, err)
 	}
 
-	return tx.Commit()
+	beginCommit := time.Now()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	w.totDurTxn += int64(time.Since(begin))
+	w.totDurCommit += int64(time.Since(beginCommit))
+	w.totCnt++
+	if w.totCnt%200 == 0 {
+		avgDurTxn := float64(w.totDurTxn) / float64(w.totCnt)
+		avgDurCommit := float64(w.totDurCommit) / float64(w.totCnt)
+		fmt.Printf("Payment Thread %d: avgDurTxn: %.2fms, avgDurCommit: %.2fms, ratio: %.2f\n", thread, avgDurTxn/1e6, avgDurCommit/1e6, avgDurCommit/avgDurTxn)
+	}
+	return nil
 }
