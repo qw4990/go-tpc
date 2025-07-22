@@ -183,7 +183,7 @@ func (w *Workloader) InitThread(ctx context.Context, threadID int) context.Conte
 	default:
 		panic("???")
 	}
-	dsn := fmt.Sprintf("root:password@tcp(%v)/test", addr)
+	dsn := fmt.Sprintf("root:@tcp(%v)/test", addr)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err)
