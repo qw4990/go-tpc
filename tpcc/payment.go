@@ -68,7 +68,7 @@ func (w *Workloader) runPayment(ctx context.Context, thread int) error {
 
 	d := paymentData{
 		//wID:     randInt(s.R, 1, w.cfg.Warehouses),
-		wID:     thread,
+		wID:     thread + 1,
 		dID:     randInt(s.R, 1, districtPerWarehouse),
 		hAmount: float64(randInt(s.R, 100, 500000)) / float64(100.0),
 	}
