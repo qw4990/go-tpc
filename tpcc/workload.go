@@ -175,11 +175,11 @@ func (w *Workloader) InitThread(ctx context.Context, threadID int) context.Conte
 	var addr string
 	switch threadID {
 	case 0: // store-4
-		addr = "10.2.106.108:4006"
+		addr = "10.2.106.108:4005"
 	case 1: // store-1
-		addr = "10.2.106.183:4006"
+		addr = "10.2.106.183:4005"
 	case 2: // store-5
-		addr = "10.2.106.238:4006"
+		addr = "10.2.106.238:4005"
 	default:
 		panic("???")
 	}
