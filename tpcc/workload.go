@@ -188,6 +188,7 @@ func (w *Workloader) InitThread(ctx context.Context, threadID int) context.Conte
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(">>>>>  connection >>> ", threadID, dsn)
 
 	s := &tpccState{
 		TpcState: workload.NewTpcState(ctx, db),
