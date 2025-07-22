@@ -152,9 +152,9 @@ func NewWorkloader(db *sql.DB, cfg *Config) (workload.Workloader, error) {
 	w.txns = []txn{
 		{name: "new_order", action: w.runNewOrder, weight: cfg.Weight[0], keyingTime: 18, thinkingTime: 12},
 		{name: "payment", action: w.runPayment, weight: cfg.Weight[1], keyingTime: 3, thinkingTime: 12},
-		{name: "order_status", action: w.runOrderStatus, weight: cfg.Weight[2], keyingTime: 2, thinkingTime: 10},
-		{name: "delivery", action: w.runDelivery, weight: cfg.Weight[3], keyingTime: 2, thinkingTime: 5},
-		{name: "stock_level", action: w.runStockLevel, weight: cfg.Weight[4], keyingTime: 2, thinkingTime: 5},
+		//{name: "order_status", action: w.runOrderStatus, weight: cfg.Weight[2], keyingTime: 2, thinkingTime: 10},
+		//{name: "delivery", action: w.runDelivery, weight: cfg.Weight[3], keyingTime: 2, thinkingTime: 5},
+		//{name: "stock_level", action: w.runStockLevel, weight: cfg.Weight[4], keyingTime: 2, thinkingTime: 5},
 	}
 
 	if w.db != nil {
@@ -171,8 +171,26 @@ func (w *Workloader) Name() string {
 
 // InitThread implements Workloader interface
 func (w *Workloader) InitThread(ctx context.Context, threadID int) context.Context {
+	db := w.db
+	var addr string
+	switch threadID {
+	case 0: // store-4
+		addr = "10.2.106.108:4005"
+	case 1: // store-1
+		addr = "10.2.106.183:4005"
+	case 2: // store-5
+		addr = "10.2.106.238:4005"
+	default:
+		panic("???")
+	}
+	dsn := fmt.Sprintf("root:password@tcp(%v)/test", addr)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		panic(err)
+	}
+
 	s := &tpccState{
-		TpcState: workload.NewTpcState(ctx, w.db),
+		TpcState: workload.NewTpcState(ctx, db),
 		index:    0,
 		decks:    make([]int, 0, 23),
 	}
