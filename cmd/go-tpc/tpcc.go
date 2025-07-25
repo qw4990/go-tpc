@@ -79,6 +79,7 @@ func executeTpcc(action string) {
 	if route {
 		var ws []workload.Workloader
 		for addr := range tpcc.AllServers {
+			fmt.Println(">>>>>> connect to ", fmt.Sprintf("%v:%v", addr, ports[0]))
 			db, err := newDB([]string{fmt.Sprintf("%v:%v", addr, ports[0])}, driver, user, password, dbName, connParams)
 			if err != nil {
 				panic(err)
