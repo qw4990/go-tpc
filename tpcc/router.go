@@ -18,6 +18,7 @@ var (
 func genWID(addr string) int {
 	pidList := Addr2PID[addr]
 	pid := pidList[rand.Intn(len(pidList))]
+	// wid % 200(partitions) == pid
 	wid := pid + 200*rand.Intn(5)
 	wid = wid % W
 	if wid == 0 {
