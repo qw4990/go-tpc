@@ -94,9 +94,6 @@ func executeTpcc(action string) {
 
 		var wg sync.WaitGroup
 		for i := range ws {
-			if i > 0 {
-				break
-			}
 			wg.Add(1)
 			go func(id int) {
 				executeWorkload(timeoutCtx, ws[id], threads, action)
@@ -130,6 +127,8 @@ func registerTpcc(root *cobra.Command) {
 			executeTpcc("prepare")
 		},
 	}
+	tpcc.W = tpccConfig.Warehouses
+
 	cmdPrepare.PersistentFlags().BoolVar(&tpccConfig.NoCheck, "no-check", false, "TPCC prepare check, default false")
 	cmdPrepare.PersistentFlags().StringVar(&tpccConfig.OutputType, "output-type", "", "Output file type."+
 		" If empty, then load data to db. Current only support csv")

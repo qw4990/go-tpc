@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	W          int
 	AllServers map[string]struct{}
 	PID2Addr   map[int]string
 	Addr2PID   = make(map[string][]int) // for reverse lookup, not used in this example
@@ -18,7 +19,7 @@ func genWID(addr string) int {
 	pidList := Addr2PID[addr]
 	pid := pidList[rand.Intn(len(pidList))]
 	wid := pid + 200*rand.Intn(5)
-	return wid % 1000
+	return wid % W
 }
 
 func init() {
